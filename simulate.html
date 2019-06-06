@@ -13,39 +13,48 @@
 
 			canvas.attr({width:width, height:height});
 
-			draw(2.5,0);
-
 			canvas.mousemove(function (e) {
 				draw((e.offsetX - width/2)/zoom, (height/2 - e.offsetY)/zoom)
 			})
 
 			function draw(x,y) {
 				var pos = Vec(x, y);
-				var dir = Vec(0, 1);
-				//var dir = Vec(x, y).normalize();
+				var dir = Vec(0, 1).normalize();
 
-				//var result = calculatePathSchwarzschild(3*Math.sqrt(3)*0.99999);
 				var result = calculatePathSchwarzschild(pos, dir);
-				//console.log(result);
+
 				var path = result.path;
 
+
+
 				ctx.clearRect(0,0,width,height);
+				
+				ctx.lineWidth = 1;
+				ctx.font = '14px sans-serif';
+				ctx.textAlign = 'center';
 
 				ctx.beginPath();
-				ctx.fillStyle = '#eee';
+				ctx.fillStyle = '#444';
 				ctx.arc(width/2, height/2, zoom, 0, Math.PI*2);
 				ctx.fill();
 
+				ctx.fillStyle = '#000';
+				ctx.textBaseline = 'middle';
+				ctx.fillText('r=1m', width/2, height/2);
+
 				ctx.beginPath();
-				ctx.strokeStyle = '#ddd';
+				ctx.strokeStyle = '#262';
+				ctx.fillStyle = '#262';
 				ctx.arc(width/2, height/2, zoom*3, 0, Math.PI*2);
 				ctx.stroke();
 
-				ctx.lineWidth = 0.5;
-				ctx.strokeStyle = '#000';
+				ctx.textBaseline = 'top';
+				ctx.fillText('r=3m', width/2, height/2 + zoom*3);
+				
 				drawPath();
 
 				function drawPath() {
+					ctx.strokeStyle = '#fff';
 					ctx.beginPath();
 					path.forEach((e,i) => {
 						var p = e.pos;
@@ -58,6 +67,12 @@
 			}
 		})
 	</script>
+	<style type="text/css">
+		body {
+			margin: 0;
+			background: #000;
+		}
+	</style>
 </head>
 <body>
 	<canvas id="canvas"></canvas>
