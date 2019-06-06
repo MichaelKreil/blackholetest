@@ -6,12 +6,14 @@
 	<script type="text/javascript" src="jquery.min.js"></script>
 	<script type="text/javascript">
 		$(() => {
-			var width = 1000, height = width, zoom = (1/10)*width/2;
+			var width = 600, height = width, zoom = 30;
 
 			var canvas = $('#canvas');
 			var ctx = canvas.get(0).getContext('2d');
 
 			canvas.attr({width:width, height:height});
+
+			draw(1000,0); // just to show something
 
 			canvas.mousemove(function (e) {
 				draw((e.offsetX - width/2)/zoom, (height/2 - e.offsetY)/zoom)

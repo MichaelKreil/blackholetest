@@ -1,7 +1,5 @@
 var maxRadius = 1e6;
-var maxDirAngleSum = 100;
-var maxPosAngleSum = 4*Math.PI;
-var stepFactor = 0.01;
+
 var result = {
 	calculatePathSchwarzschild: calculatePathSchwarzschild,
 	Vec: Vec,
@@ -19,17 +17,14 @@ function calculatePathSchwarzschild(pos0, dir0) {
 	var m = 1;
 	dir0.normalize();
 
-	var r0 = pos0.getLength();
+	var radius0 = pos0.getLength();
 
-	var L = r0*r0*pos0.getAngleToSin(dir0);
+	var L = radius0*radius0*pos0.getAngleToSin(dir0);
 
-	var r = r0;
-	var dr = r0*pos0.getAngleToCos(dir0);
+	var radius = radius0;
+	var deltaRadius = radius0*pos0.getAngleToCos(dir0);
 
 	var phi  = pos0.getAngle();
-
-	var maxR = r;
-	var minR = r;
 
 	var i = 0;
 
@@ -39,23 +34,16 @@ function calculatePathSchwarzschild(pos0, dir0) {
 	while (true) {
 		i++;
 
-		var step = 1e-3*r;
+		var step = 1e-3*radius;
 
-		var dphi = L/(r*r);
-		var dx = -r*Math.sin(phi)*dphi + dr*Math.cos(phi);
-		var dy =  r*Math.cos(phi)*dphi + dr*Math.sin(phi);
-		var pos = Vec(r*Math.cos(phi), r*Math.sin(phi));
-		var dir = Vec(dx, dy);
-		
-		phi += step*dphi;
-		dr  += step*(L*L)*(r-3*m)/(r*r*r*r);
-		r   += step*dr;
+		var deltaPhi = L/(radius*radius);
+		phi += step*deltaPhi;
 
-		if (r > maxR) maxR = r;
-		if (r < minR) minR = r;
+		deltaRadius += step*(L*L)*(radius-3*m)/Math.pow(radius, 4);
+		radius += step*deltaRadius;
 
-		if (r < 0.1) break;
-		if (r > maxRadius) break;
+		if (radius < 0.1) break;
+		if (radius > maxRadius) break;
 
 		addPoint();
 
