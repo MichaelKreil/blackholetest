@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<script type="text/javascript" src="lib/ray.js"></script>
+	<script type="text/javascript" src="jquery.min.js"></script>
+	<script type="text/javascript">
+		$(() => {
+			var width = 1000, height = width, zoom = (1/10)*width/2;
+
+			var canvas = $('#canvas');
+			var ctx = canvas.get(0).getContext('2d');
+
+			canvas.attr({width:width, height:height});
+
+			draw(2.5,0);
+
+			canvas.mousemove(function (e) {
+				draw((e.offsetX - width/2)/zoom, (height/2 - e.offsetY)/zoom)
+			})
+
+			function draw(x,y) {
+				var pos = Vec(x, y);
+				var dir = Vec(0, 1);
+				//var dir = Vec(x, y).normalize();
+
+				//var result = calculatePathSchwarzschild(3*Math.sqrt(3)*0.99999);
+				var result = calculatePathSchwarzschild(pos, dir);
+				//console.log(result);
+				var path = result.path;
+
+				ctx.clearRect(0,0,width,height);
+
+				ctx.beginPath();
+				ctx.fillStyle = '#eee';
+				ctx.arc(width/2, height/2, zoom, 0, Math.PI*2);
+				ctx.fill();
+
+				ctx.beginPath();
+				ctx.strokeStyle = '#ddd';
+				ctx.arc(width/2, height/2, zoom*3, 0, Math.PI*2);
+				ctx.stroke();
+
+				ctx.lineWidth = 0.5;
+				ctx.strokeStyle = '#000';
+				drawPath();
+
+				function drawPath() {
+					ctx.beginPath();
+					path.forEach((e,i) => {
+						var p = e.pos;
+						var x =  width/2 + p.x*zoom;
+						var y = height/2 - p.y*zoom;
+						if (i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+					})
+					ctx.stroke();
+				}
+			}
+		})
+	</script>
+</head>
+<body>
+	<canvas id="canvas"></canvas>
+</body>
+</html>
