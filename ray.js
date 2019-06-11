@@ -36,11 +36,9 @@ function calculatePathSchwarzschild(pos0, dir0) {
 
 		var step = 1e-3*radius;
 
-		var deltaPhi = L/(radius*radius);
-		phi += step*deltaPhi;
+		phi += step*L/(radius*radius);
 
 		deltaRadius += step*(L*L)*(radius-3*m)/Math.pow(radius, 4);
-		//deltaRadius += step*(1-2*m/radius)*m*(deltaRadius*deltaRadius-1)/Math.pow(radius-2*m,2);
 		radius += step*deltaRadius;
 
 		if (radius < 0.1) break;
