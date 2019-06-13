@@ -18,13 +18,15 @@ function calculatePathSchwarzschild(pos0, dir0) {
 	dir0.normalize();
 
 	var radius0 = pos0.getLength();
+	var u = 1/radius0;
+	var du = -pos0.getAngleToCos(dir0)/(pos0.getAngleToSin(dir0)*radius0);
+	var direction = 1;
+	if (pos0.getAngleToSin(dir0) < 0) {
+		du = -du;
+		direction = -1;
+	}
 
-	var L = radius0*radius0*pos0.getAngleToSin(dir0);
-
-	var radius = radius0;
-	var deltaRadius = pos0.getAngleToCos(dir0);
-
-	var phi  = pos0.getAngle();
+	var phi = pos0.getAngle();
 
 	var i = 0;
 
@@ -34,19 +36,19 @@ function calculatePathSchwarzschild(pos0, dir0) {
 	while (true) {
 		i++;
 
-		var step = 1e-3*radius;
+		var step = 1e-2;
 
-		phi += step*L/(radius*radius);
+		phi += direction*step;
+		var ddu = 3*m*u*u-u;
+		du += step*ddu;
+		u += step*du;
 
-		deltaRadius += step*(L*L)*(radius-3*m)/Math.pow(radius, 4);
-		radius += step*deltaRadius;
-
-		if (radius < 0.1) break;
-		if (radius > maxRadius) break;
+		if (u < 0) break;
+		if (u > 1e10) break;
 
 		addPoint();
 
-		if (i > 1e4) {
+		if (i > 1e5) {
 			break;
 		}
 	}
@@ -57,6 +59,7 @@ function calculatePathSchwarzschild(pos0, dir0) {
 	}
 
 	function addPoint() {
+		var radius = 1/u;
 		path.push({
 			pos:{
 				x:radius*Math.cos(phi),
