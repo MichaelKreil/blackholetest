@@ -42,30 +42,32 @@
 				ctx.textAlign = 'center';
 
 				ctx.beginPath();
-				ctx.fillStyle = '#444';
+				//ctx.fillStyle = '#444';
+				ctx.strokeStyle = 'rgba(255,0,0,0.3)';
 				ctx.arc(width/2, height/2, zoom, 0, Math.PI*2);
-				ctx.fill();
+				ctx.stroke();
+				//ctx.fill();
 
-				ctx.fillStyle = '#000';
-				ctx.textBaseline = 'middle';
-				ctx.fillText('r=1m', width/2, height/2);
+				//ctx.fillStyle = '#000';
+				//ctx.textBaseline = 'middle';
+				//ctx.fillText('r=1m', width/2, height/2);
 
 				ctx.beginPath();
-				ctx.strokeStyle = '#333';
+				ctx.strokeStyle = 'rgba(255,0,0,0.3)';
 				ctx.arc(width/2, height/2, zoom*2, 0, Math.PI*2);
 				ctx.stroke();
 
 				ctx.beginPath();
-				ctx.strokeStyle = '#262';
+				ctx.strokeStyle = 'rgba(255,0,0,0.3)';
 				ctx.arc(width/2, height/2, zoom*3, 0, Math.PI*2);
 				ctx.stroke();
 
-				ctx.textBaseline = 'top';
-				ctx.fillText('r=3m', width/2, height/2 + zoom*3);
+				//ctx.textBaseline = 'top';
+				//ctx.fillText('r=3m', width/2, height/2 + zoom*3);
 				
 				drawPath();
 
-				$('#output').text(result.count);
+				$('#output').text(result.L+', '+(result.L*result.L));
 
 				function drawPath() {
 					ctx.strokeStyle = '#fff';
