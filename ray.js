@@ -2,6 +2,7 @@ var maxRadius = 1e6;
 
 var result = {
 	calculatePathSchwarzschild: calculatePathSchwarzschild,
+	calculateParameterSpace: calculateParameterSpace,
 	Vec: Vec,
 };
 
@@ -13,7 +14,8 @@ if (typeof module === 'object') {
 	})
 }
 
-function calculatePathSchwarzschild(pos0, dir0) {
+function calculatePathSchwarzschild(pos0, dir0, step) {
+	if (!step) step = 1e-02;
 	var m = 1;
 	dir0.normalize();
 
@@ -26,7 +28,8 @@ function calculatePathSchwarzschild(pos0, dir0) {
 		direction = -1;
 	}
 
-	var phi = pos0.getAngle();
+	var phi0 = pos0.getAngle();
+	var phi = phi0;
 
 	var i = 0;
 
@@ -36,12 +39,12 @@ function calculatePathSchwarzschild(pos0, dir0) {
 	while (true) {
 		i++;
 
-		var step = 1e-2;
-
 		phi += direction*step;
 		var ddu = 3*m*u*u-u;
 		du += step*ddu;
 		u += step*du;
+
+		//if (Math.abs(pos0.getAngleToSin(dir0)) < 1e-3) console.log(phi, ddu, du, u);
 
 		if (u < 0) break;
 		if (u > 1e10) break;
@@ -55,7 +58,8 @@ function calculatePathSchwarzschild(pos0, dir0) {
 
 	return {
 		count: i,
-		path: path
+		path: path,
+		phiSum: Math.abs(phi-phi0),
 	}
 
 	function addPoint() {
@@ -68,6 +72,27 @@ function calculatePathSchwarzschild(pos0, dir0) {
 				phi:phi,
 			},
 		});
+	}
+}
+
+function calculateParameterSpace(img, vec0, vecdx, vecdy) {
+	var dir = Vec(0, 1).normalize();
+	for (var y = 0; y < img.height; y++) {
+		for (var x = 0; x < img.width; x++) {
+			var pos = vec0.getClone().addScaled(vecdx, x/img.width).addScaled(vecdy, y/img.height);
+
+			var result = calculatePathSchwarzschild(pos, dir, 1e-1)
+
+			var c = result.phiSum/10;
+
+			c = Math.round(c*8)/8;
+			c = 255*Math.min(1, Math.max(0, c));
+			var index = (y*img.width+x)*4;
+			img.data[index+0] = c;
+			img.data[index+1] = c;
+			img.data[index+2] = c;
+			img.data[index+3] = 255;
+		}
 	}
 }
 

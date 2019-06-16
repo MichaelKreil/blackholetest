@@ -13,6 +13,13 @@
 
 			canvas.attr({width:width, height:height});
 
+			var img = ctx.getImageData(0,0,width,height);
+			calculateParameterSpace(img,
+				Vec(-width/(2*zoom), height/(2*zoom)),
+				Vec((width-1)/zoom, 0),
+				Vec(0, -(height-1)/zoom),
+			)
+
 			draw(1000,0); // just to show something
 
 			canvas.mousemove(function (e) {
@@ -27,9 +34,8 @@
 
 				var path = result.path;
 
-
-
 				ctx.clearRect(0,0,width,height);
+				ctx.putImageData(img,0,0);
 				
 				ctx.lineWidth = 1;
 				ctx.font = '14px sans-serif';
@@ -45,8 +51,12 @@
 				ctx.fillText('r=1m', width/2, height/2);
 
 				ctx.beginPath();
+				ctx.strokeStyle = '#333';
+				ctx.arc(width/2, height/2, zoom*2, 0, Math.PI*2);
+				ctx.stroke();
+
+				ctx.beginPath();
 				ctx.strokeStyle = '#262';
-				ctx.fillStyle = '#262';
 				ctx.arc(width/2, height/2, zoom*3, 0, Math.PI*2);
 				ctx.stroke();
 
@@ -54,6 +64,8 @@
 				ctx.fillText('r=3m', width/2, height/2 + zoom*3);
 				
 				drawPath();
+
+				$('#output').text(result.count);
 
 				function drawPath() {
 					ctx.strokeStyle = '#fff';
@@ -78,5 +90,6 @@
 </head>
 <body>
 	<canvas id="canvas"></canvas>
+	<div id="output" style="font-family: sans-serif; color: #aaa"></div>
 </body>
 </html>
