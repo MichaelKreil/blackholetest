@@ -6,7 +6,7 @@
 	<script type="text/javascript" src="jquery.min.js"></script>
 	<script type="text/javascript">
 		$(() => {
-			var width = 800, height = width, zoom = 50;
+			var width = 600, height = width, zoom = 50, lastPath = [];
 
 			var canvas = $('#canvas');
 			var ctx = canvas.get(0).getContext('2d');
@@ -18,68 +18,70 @@
 				Vec(-width/(2*zoom), height/(2*zoom)),
 				Vec((width-1)/zoom, 0),
 				Vec(0, -(height-1)/zoom),
+				draw
 			)
 
-			draw(1000,0); // just to show something
+			drawBackground(); // just to show something
 
 			canvas.mousemove(function (e) {
-				draw((e.offsetX - width/2)/zoom, (height/2 - e.offsetY)/zoom)
+				updatePos((e.offsetX - width/2)/zoom, (height/2 - e.offsetY)/zoom);
 			})
 
-			function draw(x,y) {
+			function drawBackground() {
+				ctx.putImageData(img, 0, 0);
+
+				ctx.lineWidth = 1;
+				ctx.font = '10px sans-serif';
+				ctx.textAlign = 'center';
+
+				ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+				ctx.fillStyle   = 'rgba(255,255,255,0.3)';
+				ctx.textBaseline = 'top';
+
+				ctx.beginPath();
+				ctx.arc(width/2, height/2, zoom, 0, Math.PI*2);
+				ctx.stroke();
+				ctx.fillText('r = 1⋅m', width/2, height/2 + 1.05*zoom);
+
+				ctx.beginPath();
+				ctx.arc(width/2, height/2, zoom*2, 0, Math.PI*2);
+				ctx.stroke();
+				ctx.fillText('r = 2⋅m', width/2, height/2 + 2.05*zoom);
+
+				ctx.beginPath();
+				ctx.arc(width/2, height/2, zoom*3, 0, Math.PI*2);
+				ctx.stroke();
+				ctx.fillText('r = 3⋅m', width/2, height/2 + 3.05*zoom);
+
+			}
+
+			function drawPath() {
+				ctx.strokeStyle = '#fff';
+				ctx.beginPath();
+				lastPath.forEach((e,i) => {
+					var p = e.pos;
+					var x =  width/2 + p.x*zoom;
+					var y = height/2 - p.y*zoom;
+					if (i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+				})
+				ctx.stroke();
+			}
+
+			function updatePos(x,y) {
+
 				var pos = Vec(x, y);
 				var dir = Vec(0, 1).normalize();
 
 				var result = calculatePathSchwarzschild(pos, dir);
+				lastPath = result.path;
+				//$('#output').text(result.L+', '+(result.L*result.L));
 
-				var path = result.path;
+				draw();
+			}
 
-				ctx.clearRect(0,0,width,height);
-				ctx.putImageData(img,0,0);
-				
-				ctx.lineWidth = 1;
-				ctx.font = '14px sans-serif';
-				ctx.textAlign = 'center';
-
-				ctx.beginPath();
-				//ctx.fillStyle = '#444';
-				ctx.strokeStyle = 'rgba(255,0,0,0.3)';
-				ctx.arc(width/2, height/2, zoom, 0, Math.PI*2);
-				ctx.stroke();
-				//ctx.fill();
-
-				//ctx.fillStyle = '#000';
-				//ctx.textBaseline = 'middle';
-				//ctx.fillText('r=1m', width/2, height/2);
-
-				ctx.beginPath();
-				ctx.strokeStyle = 'rgba(255,0,0,0.3)';
-				ctx.arc(width/2, height/2, zoom*2, 0, Math.PI*2);
-				ctx.stroke();
-
-				ctx.beginPath();
-				ctx.strokeStyle = 'rgba(255,0,0,0.3)';
-				ctx.arc(width/2, height/2, zoom*3, 0, Math.PI*2);
-				ctx.stroke();
-
-				//ctx.textBaseline = 'top';
-				//ctx.fillText('r=3m', width/2, height/2 + zoom*3);
-				
+			function draw() {
+				drawBackground();
 				drawPath();
-
-				$('#output').text(result.L+', '+(result.L*result.L));
-
-				function drawPath() {
-					ctx.strokeStyle = '#fff';
-					ctx.beginPath();
-					path.forEach((e,i) => {
-						var p = e.pos;
-						var x =  width/2 + p.x*zoom;
-						var y = height/2 - p.y*zoom;
-						if (i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-					})
-					ctx.stroke();
-				}
 			}
 		})
 	</script>
@@ -87,11 +89,33 @@
 		body {
 			margin: 0;
 			background: #000;
+			font-family: sans-serif;
+			font-size: 15px;
+			color: #aaa;
+			line-height: 1.5em;
+		}
+		.center {
+			display: block;
+			width: 600px;
+			margin: 50px auto;
 		}
 	</style>
 </head>
 <body>
-	<canvas id="canvas"></canvas>
-	<div id="output" style="font-family: sans-serif; color: #aaa"></div>
+	<canvas id="canvas" style="cursor: default;" class="center"></canvas>
+	<div id="output" class="center"></div>
+	<div class="center">
+		<p>
+			A light beam is emitted vertically upwards from the position of the mouse cursor.
+			The Schwarzschild metric is used to bend the path of the light beam.<br/>
+			The circle for r = 3⋅m corresponds to the radius of the photon orbit.
+		</p>
+		<p>
+			In the background, the sum of angles of the entire path curvature is shown for each position.
+			Brighter means higher sum of angles.<br/>
+			Orange means that the light beam is captured by the singularity.<br/>
+			Blue means that the light beam escapes the singularity.
+		</p>
+	</div>
 </body>
 </html>
