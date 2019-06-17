@@ -14,26 +14,26 @@ if (typeof module === 'object') {
 	})
 }
 
-function calculatePathSchwarzschild(pos0, dir0, step) {
-	if (!step) step = 1e-3;
+function calculatePathSchwarzschild(pos0, dir0, stepSize) {
+	if (!stepSize) stepSize = 1e-3;
 	var m = 1;
 	dir0.normalize();
 
 	var radius0 = pos0.getLength();
-	if (radius0 < m*1e-2) return {
+	if (radius0 < m*2) return {
 		count: 0,
 		path: [],
 		phiSum: 0,
 	}
 
-	var u = 1/radius0;
-	var L = radius0*pos0.getAngleToSin(dir0);///Math.sqrt(1-2*m/radius0);
+	var radius = radius0;
+	var L = radius0*pos0.getAngleToSin(dir0)/Math.sqrt(1-2*m/radius0);
 
-	var du = -pos0.getAngleToCos(dir0)/(pos0.getAngleToSin(dir0)*radius0);
+	//var du = -pos0.getAngleToCos(dir0)/(pos0.getAngleToSin(dir0)*radius0);
 	//du *= Math.sqrt(1-2*m/radius0);
 	var direction = 1;
-	if (pos0.getAngleToSin(dir0) < 0) {
-		du = -du;
+	if (pos0.getAngleToCos(dir0) < 0) {
+		//du = -du;
 		direction = -1;
 	}
 
@@ -48,15 +48,19 @@ function calculatePathSchwarzschild(pos0, dir0, step) {
 	while (true) {
 		i++;
 
-		phi += direction*step;//*Math.sqrt(1-2*m*u);
-		var ddu = /*m/(L*L) +*/ 3*m*u*u - u;
-		du += step*ddu;
-		u += step*du;
+		var step = stepSize*(radius0-1.9);
 
-		//if (Math.abs(pos0.getAngleToSin(dir0)) < 1e-3) console.log(phi, ddu, du, u);
+		var dr = 1 - (L*L)/(radius*radius)*(1-2*m/radius);
+		if (dr < 0) {
+			dr = -dr;
+			direction = -direction;
+		}
+		
+		phi += step*L/(radius*radius);
+		radius += step*direction*Math.sqrt(dr);
 
-		if (u <= 0) break;
-		if (u >= 1e2) break;
+		if (radius <= 2) break;
+		if (radius >= 100) break;
 
 		addPoint();
 
@@ -73,7 +77,7 @@ function calculatePathSchwarzschild(pos0, dir0, step) {
 	}
 
 	function addPoint() {
-		var radius = 1/u;
+		//var radius = 1/u;
 		path.push({
 			pos:{
 				x:radius*Math.cos(phi),
@@ -123,15 +127,17 @@ function calculateParameterSpace(img, vec0, vecdx, vecdy, cb) {
 
 			var pos = vec0.getClone().addScaled(vecdx, x0/img.width).addScaled(vecdy, y0/img.height);
 
-			var result = calculatePathSchwarzschild(pos, dir, 1e-2)
+			var result = calculatePathSchwarzschild(pos, dir, 0.5)
 
 			var c = result.phiSum/10;
 
 			//c = Math.round(c*16)/16;
-			var lastPoint = result.path[result.path.length-1].pos;
-			var er = lastPoint.r > 1 ? 0.5 : 2.0;
-			var eg = lastPoint.r > 1 ? 1.0 : 2.0;
-			var eb = lastPoint.r > 1 ? 2.0 : 0.5;
+			var lastPoint = result.path[result.path.length-1];
+			var isInside = lastPoint ? lastPoint.pos.r < 3 : true;
+
+			var er = isInside ? 2.0 : 0.5;
+			var eg = isInside ? 2.0 : 1.0;
+			var eb = isInside ? 0.5 : 2.0;
 			var r = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/er);
 			var g = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/eg);
 			var b = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/eb);
