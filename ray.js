@@ -28,14 +28,7 @@ function calculatePathSchwarzschild(pos0, dir0, stepSize) {
 
 	var radius = radius0;
 	var L = radius0*pos0.getAngleToSin(dir0)/Math.sqrt(1-2*m/radius0);
-
-	//var du = -pos0.getAngleToCos(dir0)/(pos0.getAngleToSin(dir0)*radius0);
-	//du *= Math.sqrt(1-2*m/radius0);
-	var direction = 1;
-	if (pos0.getAngleToCos(dir0) < 0) {
-		//du = -du;
-		direction = -1;
-	}
+	var deltaRadius = pos0.getAngleToCos(dir0)*Math.sqrt(1-2*m/radius0);
 
 	var phi0 = pos0.getAngle();
 	var phi = phi0;
@@ -48,16 +41,11 @@ function calculatePathSchwarzschild(pos0, dir0, stepSize) {
 	while (true) {
 		i++;
 
-		var step = stepSize*(radius0-1.9);
+		var step = stepSize*radius0;
 
-		var dr = 1 - (L*L)/(radius*radius)*(1-2*m/radius);
-		if (dr < 0) {
-			dr = -dr;
-			direction = -direction;
-		}
-		
 		phi += step*L/(radius*radius);
-		radius += step*direction*Math.sqrt(dr);
+		deltaRadius += step*(L*L)*(radius-3*m)/Math.pow(radius, 4);
+		radius += step*deltaRadius;
 
 		if (radius <= 2) break;
 		if (radius >= 100) break;
@@ -127,7 +115,7 @@ function calculateParameterSpace(img, vec0, vecdx, vecdy, cb) {
 
 			var pos = vec0.getClone().addScaled(vecdx, x0/img.width).addScaled(vecdy, y0/img.height);
 
-			var result = calculatePathSchwarzschild(pos, dir, 0.5)
+			var result = calculatePathSchwarzschild(pos, dir, 1e-2)
 
 			var c = result.phiSum/10;
 
