@@ -65,7 +65,6 @@ function calculatePathSchwarzschild(pos0, dir0, stepSize) {
 	}
 
 	function addPoint() {
-		//var radius = 1/u;
 		path.push({
 			pos:{
 				x:radius*Math.cos(phi),
@@ -79,22 +78,7 @@ function calculatePathSchwarzschild(pos0, dir0, stepSize) {
 
 function calculateParameterSpace(img, vec0, vecdx, vecdy, cb) {
 	var dir = Vec(0, 1).normalize();
-	var points = [];
-	for (var y = 0; y < img.height; y++) {
-		for (var x = 0; x < img.width; x++) {
-			var size = 1;
-			level = 6;
-			if ((x %  2 === 0) && (y %  2 === 0)) { level = 5; size = 2; }
-			if ((x %  4 === 0) && (y %  4 === 0)) { level = 4; size = 4; }
-			if ((x %  8 === 0) && (y %  8 === 0)) { level = 3; size = 8; }
-			if ((x % 16 === 0) && (y % 16 === 0)) { level = 2; size = 16; }
-			if ((x % 32 === 0) && (y % 32 === 0)) { level = 1; size = 32; }
-			if ((x % 64 === 0) && (y % 64 === 0)) { level = 0; size = 64; }
-			//if (level > 5) continue;
-			points.push([x,y,size,level+y/img.height]);
-		}
-	}
-	points.sort(function (a,b) { return b[3]-a[3]})
+	var points = getPointList(img.width, img.height);
 	renderPoints();
 
 	function renderPoints() {
@@ -141,6 +125,25 @@ function calculateParameterSpace(img, vec0, vecdx, vecdy, cb) {
 			}
 		}
 	}
+}
+
+function getPointList(width, height) {
+	var points = [];
+	for (var y = 0; y < height; y++) {
+		for (var x = 0; x < width; x++) {
+			var size = 1;
+			level = 6;
+			if ((x %  2 === 0) && (y %  2 === 0)) { level = 5; size = 2; }
+			if ((x %  4 === 0) && (y %  4 === 0)) { level = 4; size = 4; }
+			if ((x %  8 === 0) && (y %  8 === 0)) { level = 3; size = 8; }
+			if ((x % 16 === 0) && (y % 16 === 0)) { level = 2; size = 16; }
+			if ((x % 32 === 0) && (y % 32 === 0)) { level = 1; size = 32; }
+			if ((x % 64 === 0) && (y % 64 === 0)) { level = 0; size = 64; }
+			points.push([x,y,size,level+y/height]);
+		}
+	}
+	points.sort(function (a,b) { return b[3]-a[3]})
+	return points;
 }
 
 function Vec(x,y) {
