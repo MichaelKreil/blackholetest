@@ -129,12 +129,12 @@ function calculateParameterSpace(img, vec0, vecdx, vecdy, cb) {
 
 			//c = Math.round(c*16)/16;
 			var lastPoint = result.path[result.path.length-1].pos;
-			var er = lastPoint.r < 1 ? 0.5 : 2.0;
-			var eg = lastPoint.r < 1 ? 1.0 : 1.0;
-			var eb = lastPoint.r < 1 ? 2.0 : 0.5;
-			var r = 255*Math.pow(Math.min(1, Math.max(0, c)), er);
-			var g = 255*Math.pow(Math.min(1, Math.max(0, c)), eg);
-			var b = 255*Math.pow(Math.min(1, Math.max(0, c)), eb);
+			var er = lastPoint.r > 1 ? 0.5 : 2.0;
+			var eg = lastPoint.r > 1 ? 1.0 : 2.0;
+			var eb = lastPoint.r > 1 ? 2.0 : 0.5;
+			var r = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/er);
+			var g = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/eg);
+			var b = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/eb);
 
 			for (var xi = 0; xi < size; xi++) {
 				for (var yi = 0; yi < size; yi++) {
