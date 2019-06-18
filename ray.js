@@ -149,9 +149,12 @@ function renderPointWrapper(img, cbDraw, cbPixel) {
 				var g = 255*Math.pow(Math.min(1, Math.max(0, brightness)), 1/color[1]);
 				var b = 255*Math.pow(Math.min(1, Math.max(0, brightness)), 1/color[2]);
 
-				for (var xi = 0; xi < size; xi++) {
-					for (var yi = 0; yi < size; yi++) {
-						var index = ((y0+yi)*img.width+(x0+xi))*4;
+				for (var xi = x0; xi < x0+size; xi++) {
+					if (xi >= img.width) continue;
+					for (var yi = y0; yi < y0+size; yi++) {
+						if (yi >= img.height) continue;
+						
+						var index = (yi*img.width+xi)*4;
 						img.data[index+0] = r;
 						img.data[index+1] = g;
 						img.data[index+2] = b;
