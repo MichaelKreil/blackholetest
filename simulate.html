@@ -6,7 +6,7 @@
 	<script type="text/javascript" src="jquery.min.js"></script>
 	<script type="text/javascript">
 		$(() => {
-			var width = 600, height = width, zoom = 50, lastPath = [];
+			var width = 1000, height = width, zoom = 30, lastPath = [];
 
 			var canvas1 = $('#canvas1');
 			var canvas2 = $('#canvas2');
@@ -20,14 +20,9 @@
 			var img2 = ctx2.getImageData(0,0,width,height);
 			
 			
-			drawSpace(img1,
-				Vec(-width/(2*zoom), height/(2*zoom)),
-				Vec((width-1)/zoom, 0),
-				Vec(0, -(height-1)/zoom),
-				draw1
-			)
-			
-			//drawParameterSpace(img2, draw2);
+			//drawSpace(img1, Vec(-width/(2*zoom),height/(2*zoom)), Vec((width-1)/zoom,0), Vec(0,-(height-1)/zoom), draw1)
+
+			drawParameterSpace(img2, draw2);
 
 			drawBackground(); // just to show something
 
@@ -78,11 +73,15 @@
 			function updatePos(x,y) {
 
 				var pos = Vec(x, y);
-				var dir = Vec(0, 1).normalize();
+				var dir = Vec(1, 0).normalize();
 
 				var result = calculatePathSchwarzschild(pos, dir);
 				lastPath = result.path;
-				$('#output').text(result.L+', '+(result.L*result.L));
+				$('#output').text([
+					x,y,
+					result.L,
+					(result.L*result.L),
+				].map(v => v.toFixed(2)).join(', '));
 
 				draw1();
 			}
@@ -108,8 +107,10 @@
 		}
 		.center {
 			display: block;
-			width: 600px;
 			margin: 50px auto;
+		}
+		div.center {
+			width: 600px;
 		}
 	</style>
 </head>

@@ -79,7 +79,7 @@ function calculatePathSchwarzschild(pos0, dir0, stepSize) {
 }
 
 function drawSpace(img, vec0, vecdx, vecdy, cbDraw) {
-	var dir = Vec(0, 1).normalize();
+	var dir = Vec(1, 0).normalize();
 	renderPointWrapper(img, cbDraw, function (x0,y0) {
 		var pos = vec0.getClone().addScaled(vecdx, x0/img.width).addScaled(vecdy, y0/img.height);
 
@@ -107,10 +107,12 @@ function drawParameterSpace(img, cbDraw) {
 		var a = Math.PI*y;
 		var pos = Vec(r*Math.cos(a), r*Math.sin(a));
 
-		var result = calculatePathSchwarzschild(pos, dir, 1e-1);
+		var result = calculatePathSchwarzschild(pos, dir, 1e-2);
 
 		var c = r*Math.sin(a)/Math.sqrt(1-2/r);
-		var isInside = c < Math.sqrt(27);
+		var c = Math.sin(a) < x;
+		//var isInside = c < Math.sqrt(27);
+		var isInside = Math.sin(a/2-0.5*Math.PI)/2+0.5 > 1/(r*r);
 		c /= 20;
 		c = result.phiSum/10;
 
@@ -156,13 +158,14 @@ function renderPointWrapper(img, cbDraw, cbPixel) {
 						img.data[index+3] = 255;
 					}
 				}
-			}
+			})
 		}
 	}
 }
 
-function getPointList(width, height, minSize) {
+function getPointList(width0, height0, minSize) {
 	if (!minSize) minSize = 0;
+	var maxLevel = 6;
 	var points = [];
 	for (var level = minSize; level <= maxLevel; level++) {
 		var size = Math.pow(2, level);
