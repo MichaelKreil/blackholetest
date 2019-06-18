@@ -8,64 +8,71 @@
 		$(() => {
 			var width = 600, height = width, zoom = 50, lastPath = [];
 
-			var canvas = $('#canvas');
-			var ctx = canvas.get(0).getContext('2d');
+			var canvas1 = $('#canvas1');
+			var canvas2 = $('#canvas2');
+			var ctx1 = canvas1.get(0).getContext('2d');
+			var ctx2 = canvas2.get(0).getContext('2d');
 
-			canvas.attr({width:width, height:height});
+			canvas1.attr({width:width, height:height});
+			canvas2.attr({width:width, height:height});
 
-			var img = ctx.getImageData(0,0,width,height);
+			var img1 = ctx1.getImageData(0,0,width,height);
+			var img2 = ctx2.getImageData(0,0,width,height);
 			
-			calculateParameterSpace(img,
+			
+			drawSpace(img1,
 				Vec(-width/(2*zoom), height/(2*zoom)),
 				Vec((width-1)/zoom, 0),
 				Vec(0, -(height-1)/zoom),
-				draw
+				draw1
 			)
+			
+			//drawParameterSpace(img2, draw2);
 
 			drawBackground(); // just to show something
 
-			canvas.mousemove(function (e) {
+			canvas1.mousemove(function (e) {
 				updatePos((e.offsetX - width/2)/zoom, (height/2 - e.offsetY)/zoom);
 			})
 
 			function drawBackground() {
-				ctx.putImageData(img, 0, 0);
+				ctx1.putImageData(img1, 0, 0);
 
-				ctx.lineWidth = 1;
-				ctx.font = '10px sans-serif';
-				ctx.textAlign = 'center';
+				ctx1.lineWidth = 1;
+				ctx1.font = '10px sans-serif';
+				ctx1.textAlign = 'center';
 
-				ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-				ctx.fillStyle   = 'rgba(255,255,255,0.3)';
-				ctx.textBaseline = 'top';
+				ctx1.strokeStyle = 'rgba(255,255,255,0.3)';
+				ctx1.fillStyle   = 'rgba(255,255,255,0.3)';
+				ctx1.textBaseline = 'top';
 
-				ctx.beginPath();
-				ctx.arc(width/2, height/2, zoom, 0, Math.PI*2);
-				ctx.stroke();
-				ctx.fillText('r = 1⋅m', width/2, height/2 + 1.05*zoom);
+				ctx1.beginPath();
+				ctx1.arc(width/2, height/2, zoom, 0, Math.PI*2);
+				ctx1.stroke();
+				ctx1.fillText('r = 1⋅m', width/2, height/2 + 1.05*zoom);
 
-				ctx.beginPath();
-				ctx.arc(width/2, height/2, zoom*2, 0, Math.PI*2);
-				ctx.stroke();
-				ctx.fillText('r = 2⋅m', width/2, height/2 + 2.05*zoom);
+				ctx1.beginPath();
+				ctx1.arc(width/2, height/2, zoom*2, 0, Math.PI*2);
+				ctx1.stroke();
+				ctx1.fillText('r = 2⋅m', width/2, height/2 + 2.05*zoom);
 
-				ctx.beginPath();
-				ctx.arc(width/2, height/2, zoom*3, 0, Math.PI*2);
-				ctx.stroke();
-				ctx.fillText('r = 3⋅m', width/2, height/2 + 3.05*zoom);
+				ctx1.beginPath();
+				ctx1.arc(width/2, height/2, zoom*3, 0, Math.PI*2);
+				ctx1.stroke();
+				ctx1.fillText('r = 3⋅m', width/2, height/2 + 3.05*zoom);
 
 			}
 
 			function drawPath() {
-				ctx.strokeStyle = '#fff';
-				ctx.beginPath();
+				ctx1.strokeStyle = '#fff';
+				ctx1.beginPath();
 				lastPath.forEach((e,i) => {
 					var p = e.pos;
 					var x =  width/2 + p.x*zoom;
 					var y = height/2 - p.y*zoom;
-					if (i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+					if (i === 0) ctx1.moveTo(x,y); else ctx1.lineTo(x,y);
 				})
-				ctx.stroke();
+				ctx1.stroke();
 			}
 
 			function updatePos(x,y) {
@@ -77,12 +84,16 @@
 				lastPath = result.path;
 				$('#output').text(result.L+', '+(result.L*result.L));
 
-				draw();
+				draw1();
 			}
 
-			function draw() {
+			function draw1() {
 				drawBackground();
 				drawPath();
+			}
+
+			function draw2() {
+				ctx2.putImageData(img2, 0, 0);
 			}
 		})
 	</script>
@@ -103,7 +114,7 @@
 	</style>
 </head>
 <body>
-	<canvas id="canvas" style="cursor: default;" class="center"></canvas>
+	<canvas id="canvas1" style="cursor: default;" class="center"></canvas>
 	<div id="output" class="center"></div>
 	<div class="center">
 		<p>
@@ -118,5 +129,6 @@
 			Blue means that the light beam escapes the singularity.
 		</p>
 	</div>
+	<canvas id="canvas2" style="cursor: default;" class="center"></canvas>
 </body>
 </html>

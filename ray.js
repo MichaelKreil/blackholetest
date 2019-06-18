@@ -2,7 +2,8 @@ var maxRadius = 1e6;
 
 var result = {
 	calculatePathSchwarzschild: calculatePathSchwarzschild,
-	calculateParameterSpace: calculateParameterSpace,
+	drawSpace: drawSpace,
+	drawParameterSpace: drawParameterSpace,
 	Vec: Vec,
 };
 
@@ -20,15 +21,16 @@ function calculatePathSchwarzschild(pos0, dir0, stepSize) {
 	dir0.normalize();
 
 	var radius0 = pos0.getLength();
+	var radius = radius0;
+	var L = radius0*pos0.getAngleToSin(dir0)/Math.sqrt(1-2*m/radius0);
+
 	if (radius0 < m*2) return {
 		count: 0,
 		path: [],
 		phiSum: 0,
+		L: L,
 	}
-
-	var radius = radius0;
-	var L = radius0*pos0.getAngleToSin(dir0)/Math.sqrt(1-2*m/radius0);
-	var deltaRadius = pos0.getAngleToCos(dir0)*Math.sqrt(1-2*m/radius0);
+	var deltaRadius = pos0.getAngleToCos(dir0);
 
 	var phi0 = pos0.getAngle();
 	var phi = phi0;
@@ -48,7 +50,7 @@ function calculatePathSchwarzschild(pos0, dir0, stepSize) {
 		radius += step*deltaRadius;
 
 		if (radius <= 2) break;
-		if (radius >= 100) break;
+		if (radius >= 1e3) break;
 
 		addPoint();
 
@@ -76,9 +78,9 @@ function calculatePathSchwarzschild(pos0, dir0, stepSize) {
 	}
 }
 
-function calculateParameterSpace(img, vec0, vecdx, vecdy, cb) {
+function drawSpace(img, vec0, vecdx, vecdy, cb) {
 	var dir = Vec(0, 1).normalize();
-	var points = getPointList(img.width, img.height);
+	var points = getPointList(img.width, img.height, 4);
 	renderPoints();
 
 	function renderPoints() {
@@ -106,6 +108,65 @@ function calculateParameterSpace(img, vec0, vecdx, vecdy, cb) {
 			//c = Math.round(c*16)/16;
 			var lastPoint = result.path[result.path.length-1];
 			var isInside = lastPoint ? lastPoint.pos.r < 3 : true;
+			isInside = Math.abs(result.L) < Math.sqrt(27);
+
+			var er = isInside ? 2.0 : 0.5;
+			var eg = isInside ? 1.0 : 1.0;
+			var eb = isInside ? 0.5 : 2.0;
+			var r = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/er);
+			var g = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/eg);
+			var b = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/eb);
+
+			for (var xi = 0; xi < size; xi++) {
+				for (var yi = 0; yi < size; yi++) {
+					var index = ((y0+yi)*img.width+(x0+xi))*4;
+					img.data[index+0] = r;
+					img.data[index+1] = g;
+					img.data[index+2] = b;
+					img.data[index+3] = 255;
+				}
+			}
+		}
+	}
+}
+
+function drawParameterSpace(img, cb) {
+	var dir = Vec(1, 0).normalize();
+	var points = getPointList(img.width, img.height, 4);
+	renderPoints();
+
+	function renderPoints() {
+		var tMax = Date.now()+40;
+
+		while (true) {
+			if (points.length === 0) return cb();
+			if (Date.now() > tMax) {
+				cb();
+				setTimeout(renderPoints, 0);
+				return;
+			}
+
+			var p = points.pop();
+			var x0 = p[0];
+			var y0 = p[1];
+			var x = x0/img.width;
+			var y = y0/img.height;
+			var size = p[2];
+
+			var r = 2/(1-x)+0.01;
+			var a = Math.PI*y;
+			var pos = Vec(r*Math.cos(a), r*Math.sin(a));
+
+			var result = calculatePathSchwarzschild(pos, dir, 1e-1);
+
+			var c = r*Math.sin(a)/Math.sqrt(1-2/r);
+			var isInside = c < Math.sqrt(27);
+			c /= 20;
+			c = result.phiSum/10;
+
+			//c = result.phiSum/10;
+			//var lastPoint = result.path[result.path.length-1];
+			//var isInside = lastPoint ? lastPoint.pos.r < 3 : true;
 
 			var er = isInside ? 2.0 : 0.5;
 			var eg = isInside ? 2.0 : 1.0;
@@ -127,7 +188,8 @@ function calculateParameterSpace(img, vec0, vecdx, vecdy, cb) {
 	}
 }
 
-function getPointList(width, height) {
+function getPointList(width, height, minSize) {
+	if (!minSize) minSize = 0;
 	var points = [];
 	for (var y = 0; y < height; y++) {
 		for (var x = 0; x < width; x++) {
@@ -139,6 +201,7 @@ function getPointList(width, height) {
 			if ((x % 16 === 0) && (y % 16 === 0)) { level = 2; size = 16; }
 			if ((x % 32 === 0) && (y % 32 === 0)) { level = 1; size = 32; }
 			if ((x % 64 === 0) && (y % 64 === 0)) { level = 0; size = 64; }
+			if (size < minSize) continue;
 			points.push([x,y,size,level+y/height]);
 		}
 	}
