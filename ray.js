@@ -134,25 +134,27 @@ function renderPointWrapper(img, cbDraw, cbPixel) {
 			}
 
 			var p = points.pop();
-			var x0 = p[0];
+			var x0s = p[0];
 			var y0 = p[1];
 			var size = p[2];
 
-			var result = cbPixel(x0, y0);
-			var brightness = result[0];
-			var color = result[1];
+			x0s.forEach(function (x0) {
+				var result = cbPixel(x0, y0);
+				var brightness = result[0];
+				var color = result[1];
 
-			var r = 255*Math.pow(Math.min(1, Math.max(0, brightness)), 1/color[0]);
-			var g = 255*Math.pow(Math.min(1, Math.max(0, brightness)), 1/color[1]);
-			var b = 255*Math.pow(Math.min(1, Math.max(0, brightness)), 1/color[2]);
+				var r = 255*Math.pow(Math.min(1, Math.max(0, brightness)), 1/color[0]);
+				var g = 255*Math.pow(Math.min(1, Math.max(0, brightness)), 1/color[1]);
+				var b = 255*Math.pow(Math.min(1, Math.max(0, brightness)), 1/color[2]);
 
-			for (var xi = 0; xi < size; xi++) {
-				for (var yi = 0; yi < size; yi++) {
-					var index = ((y0+yi)*img.width+(x0+xi))*4;
-					img.data[index+0] = r;
-					img.data[index+1] = g;
-					img.data[index+2] = b;
-					img.data[index+3] = 255;
+				for (var xi = 0; xi < size; xi++) {
+					for (var yi = 0; yi < size; yi++) {
+						var index = ((y0+yi)*img.width+(x0+xi))*4;
+						img.data[index+0] = r;
+						img.data[index+1] = g;
+						img.data[index+2] = b;
+						img.data[index+3] = 255;
+					}
 				}
 			}
 		}
@@ -162,21 +164,19 @@ function renderPointWrapper(img, cbDraw, cbPixel) {
 function getPointList(width, height, minSize) {
 	if (!minSize) minSize = 0;
 	var points = [];
-	for (var y = 0; y < height; y++) {
-		for (var x = 0; x < width; x++) {
-			var size = 1;
-			level = 6;
-			if ((x %  2 === 0) && (y %  2 === 0)) { level = 5; size = 2; }
-			if ((x %  4 === 0) && (y %  4 === 0)) { level = 4; size = 4; }
-			if ((x %  8 === 0) && (y %  8 === 0)) { level = 3; size = 8; }
-			if ((x % 16 === 0) && (y % 16 === 0)) { level = 2; size = 16; }
-			if ((x % 32 === 0) && (y % 32 === 0)) { level = 1; size = 32; }
-			if ((x % 64 === 0) && (y % 64 === 0)) { level = 0; size = 64; }
-			if (size < minSize) continue;
-			points.push([x,y,size,level+y/height]);
+	for (var level = minSize; level <= maxLevel; level++) {
+		var size = Math.pow(2, level);
+		var width  = Math.floor((width0 -1)/size)+1;
+		var height = Math.floor((height0-1)/size)+1;
+		for (var y = height-1; y >= 0; y--) {
+			var xs = [];
+			for (var x = 0; x < width; x++) {
+				if ((x % 2 === 0) && (y % 2 === 0) && (level !== maxLevel)) continue;
+				xs.push(x*size);
+			}
+			points.push([xs, y*size, size]);
 		}
 	}
-	points.sort(function (a,b) { return b[3]-a[3]})
 	return points;
 }
 
