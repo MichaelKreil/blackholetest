@@ -43,7 +43,7 @@ function calculatePathSchwarzschild(pos0, dir0, stepSize) {
 	while (true) {
 		i++;
 
-		var step = stepSize*radius0;
+		var step = stepSize*radius;
 
 		phi += step*L/(radius*radius);
 		deltaRadius += step*(L*L)*(radius-3*m)/Math.pow(radius, 4);
@@ -78,70 +78,57 @@ function calculatePathSchwarzschild(pos0, dir0, stepSize) {
 	}
 }
 
-function drawSpace(img, vec0, vecdx, vecdy, cb) {
+function drawSpace(img, vec0, vecdx, vecdy, cbDraw) {
 	var dir = Vec(0, 1).normalize();
-	var points = getPointList(img.width, img.height, 4);
-	renderPoints();
+	renderPointWrapper(img, cbDraw, function (x0,y0) {
+		var pos = vec0.getClone().addScaled(vecdx, x0/img.width).addScaled(vecdy, y0/img.height);
 
-	function renderPoints() {
-		var tMax = Date.now()+40;
+		var result = calculatePathSchwarzschild(pos, dir, 1e-1)
 
-		while (true) {
-			if (points.length === 0) return cb();
-			if (Date.now() > tMax) {
-				cb();
-				setTimeout(renderPoints, 0);
-				return;
-			}
+		var c = result.phiSum/10;
 
-			var p = points.pop();
-			var x0 = p[0];
-			var y0 = p[1];
-			var size = p[2];
+		//c = Math.round(c*16)/16;
+		var lastPoint = result.path[result.path.length-1];
+		var isInside = lastPoint ? lastPoint.pos.r < 3 : true;
+		isInside = Math.abs(result.L) < Math.sqrt(27);
 
-			var pos = vec0.getClone().addScaled(vecdx, x0/img.width).addScaled(vecdy, y0/img.height);
-
-			var result = calculatePathSchwarzschild(pos, dir, 1e-2)
-
-			var c = result.phiSum/10;
-
-			//c = Math.round(c*16)/16;
-			var lastPoint = result.path[result.path.length-1];
-			var isInside = lastPoint ? lastPoint.pos.r < 3 : true;
-			isInside = Math.abs(result.L) < Math.sqrt(27);
-
-			var er = isInside ? 2.0 : 0.5;
-			var eg = isInside ? 1.0 : 1.0;
-			var eb = isInside ? 0.5 : 2.0;
-			var r = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/er);
-			var g = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/eg);
-			var b = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/eb);
-
-			for (var xi = 0; xi < size; xi++) {
-				for (var yi = 0; yi < size; yi++) {
-					var index = ((y0+yi)*img.width+(x0+xi))*4;
-					img.data[index+0] = r;
-					img.data[index+1] = g;
-					img.data[index+2] = b;
-					img.data[index+3] = 255;
-				}
-			}
-		}
-	}
+		return [c, isInside ? [2,1,0.5] : [0.5,1,2]];
+	});
 }
 
-function drawParameterSpace(img, cb) {
+function drawParameterSpace(img, cbDraw) {
 	var dir = Vec(1, 0).normalize();
-	var points = getPointList(img.width, img.height, 4);
-	renderPoints();
+
+	renderPointWrapper(img, cbDraw, function (x0,y0) {
+		var x = x0/img.width;
+		var y = y0/img.height;
+
+		var r = 2/(1-x)+0.01;
+		var a = Math.PI*y;
+		var pos = Vec(r*Math.cos(a), r*Math.sin(a));
+
+		var result = calculatePathSchwarzschild(pos, dir, 1e-1);
+
+		var c = r*Math.sin(a)/Math.sqrt(1-2/r);
+		var isInside = c < Math.sqrt(27);
+		c /= 20;
+		c = result.phiSum/10;
+
+		return [c, isInside ? [2,1,0.5] : [0.5,1,2]];
+	});
+}
+
+function renderPointWrapper(img, cbDraw, cbPixel) {
+	var points = getPointList(img.width, img.height, 2);
+	renderPoints()
 
 	function renderPoints() {
 		var tMax = Date.now()+40;
 
 		while (true) {
-			if (points.length === 0) return cb();
+			if (points.length === 0) return cbDraw();
 			if (Date.now() > tMax) {
-				cb();
+				cbDraw();
 				setTimeout(renderPoints, 0);
 				return;
 			}
@@ -149,31 +136,15 @@ function drawParameterSpace(img, cb) {
 			var p = points.pop();
 			var x0 = p[0];
 			var y0 = p[1];
-			var x = x0/img.width;
-			var y = y0/img.height;
 			var size = p[2];
 
-			var r = 2/(1-x)+0.01;
-			var a = Math.PI*y;
-			var pos = Vec(r*Math.cos(a), r*Math.sin(a));
+			var result = cbPixel(x0, y0);
+			var brightness = result[0];
+			var color = result[1];
 
-			var result = calculatePathSchwarzschild(pos, dir, 1e-1);
-
-			var c = r*Math.sin(a)/Math.sqrt(1-2/r);
-			var isInside = c < Math.sqrt(27);
-			c /= 20;
-			c = result.phiSum/10;
-
-			//c = result.phiSum/10;
-			//var lastPoint = result.path[result.path.length-1];
-			//var isInside = lastPoint ? lastPoint.pos.r < 3 : true;
-
-			var er = isInside ? 2.0 : 0.5;
-			var eg = isInside ? 2.0 : 1.0;
-			var eb = isInside ? 0.5 : 2.0;
-			var r = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/er);
-			var g = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/eg);
-			var b = 255*Math.pow(Math.min(1, Math.max(0, c)), 1/eb);
+			var r = 255*Math.pow(Math.min(1, Math.max(0, brightness)), 1/color[0]);
+			var g = 255*Math.pow(Math.min(1, Math.max(0, brightness)), 1/color[1]);
+			var b = 255*Math.pow(Math.min(1, Math.max(0, brightness)), 1/color[2]);
 
 			for (var xi = 0; xi < size; xi++) {
 				for (var yi = 0; yi < size; yi++) {
