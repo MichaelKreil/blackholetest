@@ -10,11 +10,16 @@ calcPhiSum(false);
 
 function calcPhiSum(inside) {
 	var filename = 'data/phisum_'+inside+'.json';
-	//if (fs.existsSync(filename)) return JSON.parse(fs.readFileSync(filename, 'utf8'));
+	console.log('generate '+filename);
+
+	if (fs.existsSync(filename)) {
+		console.log('   ignore');
+		return;
+	}
 
 	var data = []
 	for (var xi = 0; xi <= resolution; xi++) {
-		if (xi % 5 === 0) console.log((100*xi/resolution).toFixed(1)+'%');
+		if (xi % 5 === 0) console.log('   '+(100*xi/resolution).toFixed(1)+'%');
 		data[xi] = [];
 		for (var yi = 0; yi <= resolution; yi++) {
 			var x = xi/resolution;
@@ -23,5 +28,6 @@ function calcPhiSum(inside) {
 			data[xi][yi] = v;
 		}
 	}
+
 	fs.writeFileSync(filename, JSON.stringify(data), 'utf8');
 }
