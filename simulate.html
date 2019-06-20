@@ -6,19 +6,21 @@
 	<script type="text/javascript" src="jquery.min.js"></script>
 	<script type="text/javascript">
 		$(() => {
-			var width = 1000, height = width, zoom = 30, lastPath = [];
+			var width = 1024, height = width, chartHeight = 256, zoom = 30, lastPath = [];
 
 			var canvas1 = $('#canvas1');
 			var canvas2 = $('#canvas2');
+			var canvas3 = $('#canvas3');
 			var ctx1 = canvas1.get(0).getContext('2d');
 			var ctx2 = canvas2.get(0).getContext('2d');
+			var ctx3 = canvas3.get(0).getContext('2d');
 
 			canvas1.attr({width:width, height:height});
 			canvas2.attr({width:width, height:height});
+			canvas3.attr({width:width, height:chartHeight});
 
 			var img1 = ctx1.getImageData(0,0,width,height);
 			var img2 = ctx2.getImageData(0,0,width,height);
-			
 			
 			//drawSpace(img1, Vec(-width/(2*zoom),height/(2*zoom)), Vec((width-1)/zoom,0), Vec(0,-(height-1)/zoom), draw1)
 
@@ -28,6 +30,13 @@
 
 			canvas1.mousemove(function (e) {
 				updatePos((e.offsetX - width/2)/zoom, (height/2 - e.offsetY)/zoom);
+			})
+
+			canvas2.mousemove(function (e) {
+				console.log(e.offsetX, e.offsetY);
+			})
+			canvas2.mousedown(function (e) {
+				drawChart(e.offsetX/width, e.offsetY/height, ctx3);
 			})
 
 			function drawBackground() {
@@ -131,5 +140,6 @@
 		</p>
 	</div>
 	<canvas id="canvas2" style="cursor: default;" class="center"></canvas>
+	<canvas id="canvas3" style="cursor: default;" class="center"></canvas>
 </body>
 </html>

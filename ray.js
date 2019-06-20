@@ -3,6 +3,7 @@ var maxRadius = 1e6;
 var result = {
 	calculatePathSchwarzschild: calculatePathSchwarzschild,
 	drawSpace: drawSpace,
+	drawChart: drawChart,
 	drawParameterSpace: drawParameterSpace,
 	Vec: Vec,
 };
@@ -50,11 +51,11 @@ function calculatePathSchwarzschild(pos0, dir0, stepSize) {
 		radius += step*deltaRadius;
 
 		if (radius <= 2) break;
-		if (radius >= 1e3) break;
+		if (radius >= 1e5) break;
 
 		addPoint();
 
-		if (i > 1e4) {
+		if (i > 1e5) {
 			break;
 		}
 	}
@@ -87,45 +88,93 @@ function drawSpace(img, vec0, vecdx, vecdy, cbDraw) {
 
 		var c = result.phiSum/10;
 
-		//c = Math.round(c*16)/16;
-		var lastPoint = result.path[result.path.length-1];
-		var isInside = lastPoint ? lastPoint.pos.r < 3 : true;
-		isInside = Math.abs(result.L) < Math.sqrt(27);
+		var r = pos.getLength();
+		var phi = pos.getAngleTo(dir);
+		var isInside = Math.cos(phi) < (3/r-1)*Math.sqrt(1+6/r);
 
 		return [c, isInside ? [2,1,0.5] : [0.5,1,2]];
 	});
 }
 
+function getOrbitAngle(r) {
+	return Math.acos((3/r-1)*Math.sqrt(1+6/r));
+}
+
+function getX2R(x, precision) {
+	return 2/(1+precision-x)+precision;
+}
+function getY2Phi(y,r,inside) {
+	var phiOrbit = getOrbitAngle(r);
+	return inside ? y*phiOrbit : Math.PI - (Math.PI-phiOrbit)*y;
+}
+
+function getPhi2Y(phi,r,inside) {
+	var phiOrbit = getOrbitAngle(r);
+	return inside ? phiOrbit/phi : (Math.PI-phi)/(Math.PI-phiOrbit);
+}
+
+function getValue(x, y, precision) {
+	if (!precision) precision = 1e-2;
+	var r = getX2R(x, precision);
+	var a = getY2Phi(y,r,false);
+	var pos = Vec(r*Math.cos(a), r*Math.sin(a));
+	var result = calculatePathSchwarzschild(pos, Vec(1,0), precision);
+	return Math.tanh(result.phiSum);
+	//return result.phiSum*0.5;
+	//return Math.atan(result.phiSum/Math.PI)/(0.5*Math.PI);
+	//return result.phiSum/10;
+}
+
 function drawParameterSpace(img, cbDraw) {
-	var dir = Vec(1, 0).normalize();
 
 	renderPointWrapper(img, cbDraw, function (x0,y0) {
 		var x = x0/img.width;
 		var y = y0/img.height;
 
-		var r = 2/(1-x)+0.01;
-		var a = Math.PI*y;
-		var pos = Vec(r*Math.cos(a), r*Math.sin(a));
-
-		var result = calculatePathSchwarzschild(pos, dir, 1e-2);
-
-		var c = r*Math.sin(a)/Math.sqrt(1-2/r);
-		var c = Math.sin(a) < x;
-		//var isInside = c < Math.sqrt(27);
-		var isInside = Math.sin(a/2-0.5*Math.PI)/2+0.5 > 1/(r*r);
-		c /= 20;
-		c = result.phiSum/10;
-
-		return [c, isInside ? [2,1,0.5] : [0.5,1,2]];
+		var value = getValue(x,y);
+		return [value, [1,1,1]];
 	});
 }
 
+function drawChart(x0,y0,ctx) {
+	var data = [];
+
+	var width = ctx.canvas.width;
+	var height = ctx.canvas.height;
+
+	ctx.fillStyle = '#444';
+	ctx.fillRect(0,0,width,height);
+
+	ctx.strokeStyle = '#a00';
+	ctx.beginPath();
+	for (var xi = 0; xi < width; xi++) {
+		var x = xi/(width-1);
+		var v = getValue(x,0.5);
+		var yi = (1-v)*height;
+		if (xi === 0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi);
+	}
+	ctx.stroke();
+
+	ctx.strokeStyle = '#0a0';
+	ctx.beginPath();
+	for (var xi = 0; xi < width; xi++) {
+		var x = xi/(width-1);
+		var v = getValue(x0,x);
+		data.push(x.toFixed(4)+'\t'+v.toFixed(4));
+		var yi = (1-v)*height;
+		if (xi === 0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi);
+	}
+	ctx.stroke();
+
+	console.log(data.join('\n'));
+}
+
 function renderPointWrapper(img, cbDraw, cbPixel) {
-	var points = getPointList(img.width, img.height, 2);
+	var points = getPointList(img.width, img.height, 3);
 	renderPoints()
 
 	function renderPoints() {
-		var tMax = Date.now()+40;
+		var tMax = Date.now()+100;
 
 		while (true) {
 			if (points.length === 0) return cbDraw();
@@ -136,8 +185,8 @@ function renderPointWrapper(img, cbDraw, cbPixel) {
 			}
 
 			var p = points.pop();
-			var x0s = p[0];
-			var y0 = p[1];
+			var x0s  = p[0];
+			var y0   = p[1];
 			var size = p[2];
 
 			x0s.forEach(function (x0) {
@@ -153,7 +202,7 @@ function renderPointWrapper(img, cbDraw, cbPixel) {
 					if (xi >= img.width) continue;
 					for (var yi = y0; yi < y0+size; yi++) {
 						if (yi >= img.height) continue;
-						
+
 						var index = (yi*img.width+xi)*4;
 						img.data[index+0] = r;
 						img.data[index+1] = g;
