@@ -1,3 +1,5 @@
+"use strict"
+
 var maxRadius = 1e6;
 
 var result = {
@@ -5,6 +7,7 @@ var result = {
 	drawSpace: drawSpace,
 	drawChart: drawChart,
 	drawParameterSpace: drawParameterSpace,
+	getTanhPhiSum: getTanhPhiSum,
 	Vec: Vec,
 };
 
@@ -101,7 +104,9 @@ function getOrbitAngle(r) {
 }
 
 function getX2R(x, precision) {
-	return 2/(1+precision-x)+precision;
+	if (x <   precision) return 2+precision;
+	if (x > 1-precision) return maxRadius;
+	return 2/(1-x);
 }
 function getY2Phi(y,r,inside) {
 	var phiOrbit = getOrbitAngle(r);
@@ -113,10 +118,12 @@ function getPhi2Y(phi,r,inside) {
 	return inside ? phiOrbit/phi : (Math.PI-phi)/(Math.PI-phiOrbit);
 }
 
-function getValue(x, y, precision) {
+function getTanhPhiSum(x, y, inside, precision) {
 	if (!precision) precision = 1e-2;
+
 	var r = getX2R(x, precision);
-	var a = getY2Phi(y,r,false);
+	var a = getY2Phi(y, r, inside);
+
 	var pos = Vec(r*Math.cos(a), r*Math.sin(a));
 	var result = calculatePathSchwarzschild(pos, Vec(1,0), precision);
 	return Math.tanh(result.phiSum);
@@ -131,7 +138,7 @@ function drawParameterSpace(img, cbDraw) {
 		var x = x0/img.width;
 		var y = y0/img.height;
 
-		var value = getValue(x,y);
+		var value = getTanhPhiSum(x,y,false);
 		return [value, [1,1,1]];
 	});
 }
@@ -149,7 +156,7 @@ function drawChart(x0,y0,ctx) {
 	ctx.beginPath();
 	for (var xi = 0; xi < width; xi++) {
 		var x = xi/(width-1);
-		var v = getValue(x,0.5);
+		var v = getTanhPhiSum(x,0.5,false);
 		var yi = (1-v)*height;
 		if (xi === 0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi);
 	}
@@ -159,7 +166,7 @@ function drawChart(x0,y0,ctx) {
 	ctx.beginPath();
 	for (var xi = 0; xi < width; xi++) {
 		var x = xi/(width-1);
-		var v = getValue(x0,x);
+		var v = getTanhPhiSum(x0,x,false);
 		data.push(x.toFixed(4)+'\t'+v.toFixed(4));
 		var yi = (1-v)*height;
 		if (xi === 0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi);
