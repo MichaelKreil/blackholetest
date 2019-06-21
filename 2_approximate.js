@@ -11,8 +11,8 @@ const debug = 2;
 //var app4 = new approximator4();
 
 approximatePhiSum(
-	approximatorPoly1([0.5,1.5,2,2.5,3]),
-	false,//approximatorPoly([0,1,2]),
+	approximatorPoly1([2,3,4,5,6]),
+	approximatorPoly([0,1,2,3,4]),
 	true
 );
 //approximatePhiSum(app2, app2, false);
@@ -39,18 +39,28 @@ function approximatePhiSum(app1, app2, inside, par) {
 			console.log([
 				xi,
 				solution.count,
-				solution.error.toFixed(8),
+				Math.log10(solution.error).toFixed(8),
 				solution.par.map(v => v.toFixed(3)).join('\t')
 			].join('\t'));
 		}
+		/*
+		row.forEach(r => {
+			console.log([
+				r[0],
+				r[1],
+				app1.func(r[0], solution.par),
+			].join('\t'))
+		})
+		*/
+		//process.exit();
+		
 	}
-	process.exit();
 	if (!app2) {
 		console.log(Math.sqrt(errorSum));
 		process.exit();
 	}
 
-	var parameters2D = app1.init().map((v,i) => {
+	var parameters2D = app1.initX().map((v,i) => {
 		var row = parameters1D.map((p,xi) => [xi/resolution, p[i]]);
 		var solution = solver1D(app2, row);
 		console.log(solution);
@@ -76,6 +86,7 @@ function approximatePhiSum(app1, app2, inside, par) {
 		}
 
 		var count = 0;
+		var stepSize = 1;
 
 		var grad0 = getGradient(x0, -1);
 		var s0 = grad0;
@@ -96,6 +107,7 @@ function approximatePhiSum(app1, app2, inside, par) {
 			var s1 = makeStep(grad1, s0, b1);
 			var a1 = lineSearch(x1, s1);
 			var x2 = makeStep(x1, s1, a1);
+			var error2 = getError(x2);
 
 			
 			//var x2 = makeStep(x1, grad1, 0.01);
@@ -106,8 +118,18 @@ function approximatePhiSum(app1, app2, inside, par) {
 				console.log('s1', s1);
 				console.log('a1', a1);
 				console.log('x2', x2);
-				console.log('error2', getError(x2));
+				console.log('error2', error2);
 			}
+
+			stepSize = stepSize*0.5 + 0.5*getDistance(x1, x2);
+			if (stepSize < 1e-6) {
+				return {
+					count: count,
+					error: error2,
+					par: x2,
+				}
+			}
+			//console.log(stepSize);
 
 			x0 = x1;
 			x1 = x2;
@@ -115,15 +137,15 @@ function approximatePhiSum(app1, app2, inside, par) {
 			s0 = s1;
 			count++;
 
-			if (count % 100 === 0) log();
-			if (count > 1000) process.exit();
+			//if (count % 1 === 0) log();
+			//if (count > 100) process.exit();
 		}
 
 		function log() {
 			if (debug <= 1) return;
 			console.log([
 				count,
-				Math.log10(getError(x2)).toFixed(6), // -4.28
+				Math.log10(error2).toFixed(6), // -4.28
 				x2.map(v => v.toFixed(6)).join('\t')
 			].join('\t'));
 		}
@@ -256,6 +278,10 @@ function approximatePhiSum(app1, app2, inside, par) {
 			grad.forEach((g,i) => grad[i] *= multiplier);
 			return grad;
 		}
+
+		function getDistance(p0, p1) {
+			return Math.sqrt(p0.reduce((sum,v0,i) => sum+sqr(v0-p1[i]),0));
+		}
 	}
 }
 
@@ -344,11 +370,15 @@ function approximatorPoly1(exponents) {
 	return {
 		initX:    () => zeros.slice(),
 		initGrad: () => zeros.slice(),
-		func:     (x, par)          => exponents.reduce((sum, e, i) => sum + Math.pow(x,e)*par[i], 0) + (1 - x*exponents.reduce((sum, e, i) => sum + par[i], 0)),
+		func:     (x, par)          => exponents.reduce((sum, e, i) => sum + Math.pow(x,e)* par[i]           , 0) + x*(1-exponents.reduce((sum, e, i) => sum + par[i]            , 0)),
 		grad:      x                => exponents.map(e => Math.pow(x,e) - x),
-		linDiff0: (x, par, grad, t) => exponents.reduce((sum, e, i) => sum + Math.pow(x,e)*(par[i]+t*grad[i]), 0) + (1 - x*exponents.reduce((sum, e, i) => sum + par[i] + t*grad[i], 0)),
-		linDiff1: (x, par, grad, t) => exponents.reduce((sum, e, i) => sum + Math.pow(x,e)*          grad[i] , 0)      - x*exponents.reduce((sum, e, i) => sum +            grad[i], 0),
+		linDiff0: (x, par, grad, t) => exponents.reduce((sum, e, i) => sum + Math.pow(x,e)*(par[i]+t*grad[i]), 0) + x*(1-exponents.reduce((sum, e, i) => sum + par[i] + t*grad[i], 0)),
+		linDiff1: (x, par, grad, t) => exponents.reduce((sum, e, i) => sum + Math.pow(x,e)*          grad[i] , 0) + x*( -exponents.reduce((sum, e, i) => sum +            grad[i], 0)),
 		linDiff2: (x, par, grad, t) => 0,
+		//fixPar: par => {
+		//	exponents.reduce((sum, e, i) => sum +   par[i], 0) maximal 1
+		//	exponents.reduce((sum, e, i) => sum + e*par[i], 0) mindestens 0
+		//}
 	}
 }
 
