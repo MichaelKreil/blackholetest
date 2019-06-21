@@ -22,9 +22,9 @@
 			var img1 = ctx1.getImageData(0,0,width,height);
 			var img2 = ctx2.getImageData(0,0,width,height);
 			
-			//drawSpace(img1, Vec(-width/(2*zoom),height/(2*zoom)), Vec((width-1)/zoom,0), Vec(0,-(height-1)/zoom), draw1)
+			drawSpace(img1, Vec(-width/(2*zoom),height/(2*zoom)), Vec((width-1)/zoom,0), Vec(0,-(height-1)/zoom), draw1)
 
-			drawParameterSpace(img2, draw2);
+			//drawParameterSpace(img2, draw2);
 
 			drawBackground(); // just to show something
 
