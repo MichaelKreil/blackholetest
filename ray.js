@@ -141,7 +141,7 @@ function drawParameterSpace(img, cbDraw) {
 		var x = x0/img.width;
 		var y = y0/img.height;
 
-		var value = getTanhPhiSum(x,y,false,1e-4);
+		var value = getTanhPhiSum(x,y,false,1e-3);
 		return [value, [1,1,1]];
 	});
 }
@@ -159,7 +159,7 @@ function drawChart(x0,y0,ctx) {
 	ctx.beginPath();
 	for (var xi = 0; xi < width; xi++) {
 		var x = xi/(width-1);
-		var v = getTanhPhiSum(x,y0,false);
+		var v = getTanhPhiSum(x,y0,true);
 		var yi = (1-v)*height;
 		if (xi === 0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi);
 	}
@@ -169,7 +169,7 @@ function drawChart(x0,y0,ctx) {
 	ctx.beginPath();
 	for (var xi = 0; xi < width; xi++) {
 		var x = xi/(width-1);
-		var v = getTanhPhiSum(x0,x,false);
+		var v = getTanhPhiSum(x0,x,true);
 		//data.push(x.toFixed(4)+'\t'+v.toFixed(4));
 		var yi = (1-v)*height;
 		if (xi === 0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi);

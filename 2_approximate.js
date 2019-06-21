@@ -5,29 +5,28 @@ const fs = require('fs');
 const resolution = 100;
 var debug = false;
 
-approximatePhiSum(true);
-//approximatePhiSum(false);
+var app1 = new approximator1();
+var app2 = new approximator2();
+var app3 = new approximator3();
 
-function approximatePhiSum(inside) {
+//approximatePhiSum(app1, app2, true);
+approximatePhiSum(app2, app2, false);
+
+function approximatePhiSum(app1, app2, inside, par) {
+
 	var filename = 'data/phisum_'+inside+'.json';
 	if (!fs.existsSync(filename)) throw Error();
 
-	var data = JSON.parse(fs.readFileSync(filename, 'utf8'));
+	var data0 = JSON.parse(fs.readFileSync(filename, 'utf8'));
 
-	var parameters = [];
-	var app1 = new approximator1();
-	var app2 = new approximator2();
-	var par, row;
-	//console.log(data[resolution].join('\n'));
+	var parameters1D = [];
 
 	for (var xi = 0; xi <= resolution; xi++) {
-		row = data[xi].slice(0);
-		row[0] = 0;
-		row[resolution] = 1;
-		row = row.map((v,yi) => [yi/resolution, v]);
+		var row = data0[xi].map((v,yi) => [yi/resolution, v]);
+		//console.log(data0[xi].join(','));
 
 		var solution = solver1D(app1, row, par);
-		parameters[xi] = solution.par;
+		parameters1D[xi] = solution.par;
 		par = solution.par;
 		console.log([
 			xi,
@@ -37,60 +36,27 @@ function approximatePhiSum(inside) {
 		].join('\t'));
 	}
 
-	debug = false;
-
-	for (var i = 0; i < 3; i++) {
-		row = parameters.map((p,xi) => [xi/resolution, p[i]]);
+	var parameters2D = app1.init().map((v,i) => {
+		var row = parameters1D.map((p,xi) => [xi/resolution, p[i]]);
 		var solution = solver1D(app2, row);
 		console.log(solution);
-	}
+		return solution.par;
+	})
 
-	//console.log(data[resolution].join('\n'));
+	var data = [];
+	data0.forEach((row, xi) => {
+		row.forEach((v, yi) => data.push([xi/resolution, yi/resolution, v]));
+	})
+
+	//solver2D(app1, app2, data, parameters2D);
+
+	console.log(parameters2D);
 	process.exit();
-
-	function approximator1() {
-		var me = {
-			init:     () => [0,0,0],
-			initGrad: () => [0,0,0],
-			func: (x, par) => (x*x*par[0] + x*(1-par[0]))/(x*x*par[1] + x*par[2] + (1-par[1]-par[2])),
-			grad: (x, par) => {
-				var a = x*x*par[0] + x*(1-par[0]);
-				var b = x*x*par[1] + x*par[2] + (1-par[1]-par[2]);
-				return [
-					(x-1)*x/b,
-					-a*(x*x-1)/sqr(b),
-					-a*(x-1)/sqr(b),
-				]
-			}
-		}
-		return me;
-	}
-
-	function approximator2() {
-		var me = {
-			init:     () => [0,0,1,0,0,1],
-			initGrad: () => [0,0,0,0,0,0],
-			func: (x, par) => (x*x*par[0] + x*par[1] + par[2])/(x*x*par[3] + x*par[4] + par[5]),
-			grad: (x, par) => {
-				var a = x*x*par[0] + x*par[1] + par[2];
-				var b = x*x*par[3] + x*par[4] + par[5];
-				return [
-					x*x/b,
-					x/b,
-					1/b,
-					-a*(x*x)/sqr(b),
-					-a*x/sqr(b),
-					-a*1/sqr(b),
-				]
-			}
-		}
-		return me;
-	}
 
 	function solver1D(app, data, par0) {
 		if (!par0) par0 = app.init();
 
-		var step = 0.1;
+		var step = 0.001;
 		var count = 0;
 
 		var grad = getGradient(par0);
@@ -98,13 +64,14 @@ function approximatePhiSum(inside) {
 		var bestError = getError(par0);
 
 		if (debug) {
-			console.log(data);
-			console.log(par0);
-			console.log(grad);
+			//console.log(data);
+			//console.log(par0);
+			//console.log(grad);
 		}
 
 		while (true) {
 			var par = grad.map((g,i) => par0[i] - step*grad[i]);
+			app.fixPar(par);
 			var error = getError(par);
 			count++;
 
@@ -117,16 +84,17 @@ function approximatePhiSum(inside) {
 				if (!newGrad) newGrad = getGradient(par0);
 				grad = newGrad;
 				step /= 2;
-				if (step < 1e-9) {
-					return {
-						par: par0,
-						error: bestError,
-						count: count,
-					}
-				};
+			}
+
+			if ((step < 1e-6) || (bestError < 1e-6)) {
+				return {
+					par: par0,
+					error: bestError,
+					count: count,
+				}
 			}
 			
-			if (debug && (count % 1 === 0)) console.log([
+			if (debug && (count % 10000 === 0)) console.log([
 				count,
 				Math.log10(step).toFixed(2),
 				Math.log10(bestError).toFixed(2), // -4.28
@@ -160,6 +128,68 @@ function approximatePhiSum(inside) {
 			return grad;
 		}
 	}
-
-	function sqr(v) { return v*v }
 }
+
+
+function approximator1() {
+	return {
+		init:     () => [0,0,0],
+		initGrad: () => [0,0,0],
+		func: (x, par) => (x*x*par[0] + x*(1-par[0]))/(x*x*par[1] + x*par[2] + (1-par[1]-par[2])),
+		grad: (x, par) => {
+			var a = x*x*par[0] + x*(1-par[0]);
+			var b = x*x*par[1] + x*par[2] + (1-par[1]-par[2]);
+			return [
+				(x-1)*x/b,
+				-a*(x*x-1)/sqr(b),
+				-a*(x-1)/sqr(b),
+			]
+		},
+		fixPar: par => {}
+	}
+}
+
+function approximator2() {
+	return {
+		init:     () => [0,0,1,0,0,1],
+		initGrad: () => [0,0,0,0,0,0],
+		func: (x, par) => (x*x*par[0] + x*par[1] + par[2])/(x*x*par[3] + x*par[4] + par[5]),
+		grad: (x, par) => {
+			var a = x*x*par[0] + x*par[1] + par[2];
+			var b = x*x*par[3] + x*par[4] + par[5];
+			return [
+				x*x/b,
+				x/b,
+				1/b,
+				-a*(x*x)/sqr(b),
+				-a*x/sqr(b),
+				-a*1/sqr(b),
+			]
+		},
+		fixPar: par => {
+			var s = Math.abs(par[0]) + Math.abs(par[1]) + Math.abs(par[2]);
+			par.forEach((v,i) => par[i] /= s);
+		}
+	}
+}
+
+
+function approximator3() {
+	return {
+		init:     () => [0,0],
+		initGrad: () => [0,0],
+		func: (x, par) => (x*x*par[0] + x*(1-par[0]))/(x*par[1] + (1-par[1])),
+		grad: (x, par) => {
+			var a = x*x*par[0] + x*(1-par[0]);
+			var b = x*par[1] + (1-par[1]);
+			return [
+				(x-1)*x/b,
+				-a*(x-1)/sqr(b),
+			]
+		},
+		fixPar: par => {}
+	}
+}
+
+
+function sqr(v) { return v*v }
