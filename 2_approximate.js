@@ -3,14 +3,19 @@
 const fs = require('fs');
 
 const resolution = 100;
-var debug = false;
+const debug = 2;
 
 var app1 = new approximator1();
 var app2 = new approximator2();
 var app3 = new approximator3();
+//var app4 = new approximator4();
 
-//approximatePhiSum(app1, app2, true);
-approximatePhiSum(app2, app2, false);
+approximatePhiSum(
+	approximatorPoly1([1.5,2,6]),
+	false,//approximatorPoly([0,1,2]),
+	true
+);
+//approximatePhiSum(app2, app2, false);
 
 function approximatePhiSum(app1, app2, inside, par) {
 
@@ -20,6 +25,7 @@ function approximatePhiSum(app1, app2, inside, par) {
 	var data0 = JSON.parse(fs.readFileSync(filename, 'utf8'));
 
 	var parameters1D = [];
+	var errorSum = 0;
 
 	for (var xi = 0; xi <= resolution; xi++) {
 		var row = data0[xi].map((v,yi) => [yi/resolution, v]);
@@ -28,12 +34,20 @@ function approximatePhiSum(app1, app2, inside, par) {
 		var solution = solver1D(app1, row, par);
 		parameters1D[xi] = solution.par;
 		par = solution.par;
-		console.log([
-			xi,
-			solution.count,
-			solution.error.toFixed(8),
-			solution.par.map(v => v.toFixed(3)).join('\t')
-		].join('\t'));
+		errorSum += sqr(solution.error);
+		if (debug > 0) {
+			console.log([
+				xi,
+				solution.count,
+				solution.error.toFixed(8),
+				solution.par.map(v => v.toFixed(3)).join('\t')
+			].join('\t'));
+		}
+	}
+
+	if (!app2) {
+		console.log(Math.sqrt(errorSum));
+		process.exit();
 	}
 
 	var parameters2D = app1.init().map((v,i) => {
@@ -63,43 +77,52 @@ function approximatePhiSum(app1, app2, inside, par) {
 		var newGrad = false;
 		var bestError = getError(par0);
 
-		if (debug) {
-			//console.log(data);
-			//console.log(par0);
-			//console.log(grad);
+		if (debug > 2) {
+			console.log(data);
+			console.log(par0);
+			console.log(grad);
 		}
 
 		while (true) {
 			var par = grad.map((g,i) => par0[i] - step*grad[i]);
-			app.fixPar(par);
+			if (app.fixPar) app.fixPar(par);
 			var error = getError(par);
 			count++;
 
 			if (error < bestError) {
 				bestError = error;
 				par0 = par;
-				newGrad = false;
-				step *= 1.5;
+				step *= 1.1;
+				newGrad = getGradient(par0);
+				grad = newGrad.map((v,i) => v*0.1+0.9*grad[i]);
 			} else {
-				if (!newGrad) newGrad = getGradient(par0);
 				grad = newGrad;
-				step /= 2;
+				//grad = newGrad.map((v,i) => v*0.5+0.5*grad[i]);
+				step /= 10;
 			}
 
-			if ((step < 1e-6) || (bestError < 1e-6)) {
+
+			if ((step < 1e-9) || (bestError < 1e-6)) {
+				log();
+				process.exit()
 				return {
 					par: par0,
 					error: bestError,
 					count: count,
 				}
 			}
-			
-			if (debug && (count % 10000 === 0)) console.log([
-				count,
-				Math.log10(step).toFixed(2),
-				Math.log10(bestError).toFixed(2), // -4.28
-				par.map(v => v.toFixed(6)).join('\t')
-			].join('\t'));
+
+			if (count % 1 === 0) log();
+
+			function log() {
+				if (debug <= 1) return;
+				console.log([
+					count,
+					Math.log10(step).toFixed(2),
+					Math.log10(bestError).toFixed(2), // -4.28
+					par.map(v => v.toFixed(6)).join('\t')
+				].join('\t'));
+			}
 		}
 	
 		throw Error();
@@ -112,7 +135,7 @@ function approximatePhiSum(app1, app2, inside, par) {
 				var yIs = app.func(x, par);
 				error += sqr(yIs-yGoal);
 			})
-			return error;
+			return Math.sqrt(error);
 		}
 
 		function getGradient(par) {
@@ -145,7 +168,6 @@ function approximator1() {
 				-a*(x-1)/sqr(b),
 			]
 		},
-		fixPar: par => {}
 	}
 }
 
@@ -176,18 +198,43 @@ function approximator2() {
 
 function approximator3() {
 	return {
-		init:     () => [0,0],
-		initGrad: () => [0,0],
-		func: (x, par) => (x*x*par[0] + x*(1-par[0]))/(x*par[1] + (1-par[1])),
-		grad: (x, par) => {
-			var a = x*x*par[0] + x*(1-par[0]);
-			var b = x*par[1] + (1-par[1]);
+		init:     () => [0,0,1],
+		initGrad: () => [0,0,0],
+		func: (x, par) => x*x*x*x*par[0] + x*x*x*par[1] + x*x*par[2] + x*(1-par[0]-par[1]-par[2]),
+		grad: x => {
 			return [
-				(x-1)*x/b,
-				-a*(x-1)/sqr(b),
+				x*x*x*x - x,
+				x*x*x - x,
+				x*x - x,
 			]
 		},
-		fixPar: par => {}
+	}
+}
+
+function approximatorPoly(exponents) {
+	var length = exponents.length;
+	var zeros = new Array(length);
+	zeros.fill(0);
+	return {
+		init:     () => zeros.slice(),
+		initGrad: () => zeros.slice(),
+		func: (x, par) =>
+			exponents.reduce((sum, e, i) => sum + Math.pow(x,e)*par[i], 0),
+		grad: x => exponents.map(e => Math.pow(x,e)),
+	}
+}
+
+function approximatorPoly1(exponents) {
+	var length = exponents.length;
+	var zeros = new Array(length);
+	zeros.fill(0);
+	return {
+		init:     () => zeros.slice(),
+		initGrad: () => zeros.slice(),
+		func: (x, par) =>
+			exponents.reduce((sum, e, i) => sum + Math.pow(x,e)*par[i], 0) +
+			x*exponents.reduce((sum, e, i) => sum-par[i], 1),
+		grad: x => exponents.map(e => Math.pow(x,e)-x),
 	}
 }
 
