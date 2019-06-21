@@ -5,14 +5,9 @@ const fs = require('fs');
 const resolution = 100;
 const debug = 2;
 
-//var app1 = new approximator1();
-//var app2 = new approximator2();
-//var app3 = new approximator3();
-//var app4 = new approximator4();
-
 approximatePhiSum(
 	approximatorPoly1([2,3,4,5,6]),
-	approximatorPoly([0,1,2,3,4]),
+	approximatorPoly( [0,1,2,3,4]),
 	true
 );
 //approximatePhiSum(app2, app2, false);
@@ -29,7 +24,6 @@ function approximatePhiSum(app1, app2, inside, par) {
 
 	for (var xi = 0; xi <= resolution; xi++) {
 		var row = data0[xi].map((v,yi) => [yi/resolution, v]);
-		//console.log(data0[xi].join(','));
 
 		var solution = solver1D(app1, row, par);
 		parameters1D[xi] = solution.par;
@@ -109,9 +103,6 @@ function approximatePhiSum(app1, app2, inside, par) {
 			var x2 = makeStep(x1, s1, a1);
 			var error2 = getError(x2);
 
-			
-			//var x2 = makeStep(x1, grad1, 0.01);
-
 			if (debug > 2) {
 				console.log('grad1', grad1);
 				console.log('b1', b1);
@@ -129,23 +120,19 @@ function approximatePhiSum(app1, app2, inside, par) {
 					par: x2,
 				}
 			}
-			//console.log(stepSize);
 
 			x0 = x1;
 			x1 = x2;
 			grad0 = grad1;
 			s0 = s1;
 			count++;
-
-			//if (count % 1 === 0) log();
-			//if (count > 100) process.exit();
 		}
 
 		function log() {
 			if (debug <= 1) return;
 			console.log([
 				count,
-				Math.log10(error2).toFixed(6), // -4.28
+				Math.log10(error2).toFixed(6),
 				x2.map(v => v.toFixed(6)).join('\t')
 			].join('\t'));
 		}
@@ -153,17 +140,6 @@ function approximatePhiSum(app1, app2, inside, par) {
 		throw Error();
 
 		function lineSearch(x0, grad) {
-			/*
-			for (var i = -0.1; i <= 0.1; i += 0.01) {
-				console.log([
-					i.toFixed(3),
-					getErrorLine(x0, grad, i).toFixed(3),
-					getErrorDiffLine(x0, grad, i).toFixed(3),
-
-				].join('\t'));
-			}
-			*/
-			//process.exit();
 
 			var t0 = -0.1;
 			var t1 =  0.1;
@@ -187,31 +163,6 @@ function approximatePhiSum(app1, app2, inside, par) {
 					return t1;
 				}
 			}
-
-			console.log(r0, r1, rn);
-			process.exit();
-			//if (d1 < d0) {
-			//	var t = t0; t0 = t1; t1 = t;
-			//	var d = d0; d0 = d1; d1 = d;
-			//}
-
-			//console.log('   lineSearch step 0: ', t0, getErrorLine(x0, grad, t0), d0);
-			//console.log('   lineSearch step 1: ', t1, getErrorLine(x0, grad, t1), d1);
-
-			
-
-			//console.log('   lineSearch step n: ', tn, getErrorLine(x0, grad, tn), dn);
-
-
-
-			if (dn < 1e-6) return tn;
-			if (Math.abs(t1-tn) > Math.abs(tn-t0)) {
-				t1 = tn; d1 = dn;
-			} else {
-				t0 = tn; d0 = dn;
-			}
-
-			throw Error();
 		}
 
 		function getPolakRibiere(grad0, grad1) {
@@ -221,7 +172,6 @@ function approximatePhiSum(app1, app2, inside, par) {
 				aSum += v1*(v1-v0);
 				bSum += v0*v0;
 			})
-			//console.log('   getPolakRibiere', aSum/bSum);
 			return aSum/bSum;
 		}
 
@@ -235,17 +185,6 @@ function approximatePhiSum(app1, app2, inside, par) {
 				var x = e[0];
 				var yGoal = e[1];
 				var yIs = app.func(x, par);
-				error += sqr(yIs-yGoal);
-			})
-			return error;
-		}
-
-		function getErrorLine(par, grad, t) {
-			var error = 0;
-			data.forEach(e => {
-				var x = e[0];
-				var yGoal = e[1];
-				var yIs = app.linDiff0(x, par, grad, t);
 				error += sqr(yIs-yGoal);
 			})
 			return error;
@@ -284,69 +223,6 @@ function approximatePhiSum(app1, app2, inside, par) {
 		}
 	}
 }
-
-/*
-function approximator1() {
-	return {
-		initX:    () => [0,0,0],
-		initGrad: () => [0,0,0],
-		func: (x, par) => (x*x*par[0] + x*(1-par[0]))/(x*x*par[1] + x*par[2] + (1-par[1]-par[2])),
-		grad: (x, par) => {
-			var a = x*x*par[0] + x*(1-par[0]);
-			var b = x*x*par[1] + x*par[2] + (1-par[1]-par[2]);
-			return [
-				(x-1)*x/b,
-				-a*(x*x-1)/sqr(b),
-				-a*(x-1)/sqr(b),
-			]
-		},
-	}
-}
-
-function approximator2() {
-	return {
-		initX:    () => [0,0,1,0,0,1],
-		initGrad: () => [0,0,0,0,0,0],
-		func: (x, par) => (x*x*par[0] + x*par[1] + par[2])/(x*x*par[3] + x*par[4] + par[5]),
-		grad: (x, par) => {
-			var a = x*x*par[0] + x*par[1] + par[2];
-			var b = x*x*par[3] + x*par[4] + par[5];
-			return [
-				x*x/b,
-				x/b,
-				1/b,
-				-a*(x*x)/sqr(b),
-				-a*x/sqr(b),
-				-a*1/sqr(b),
-			]
-		},
-		fixPar: par => {
-			var s = Math.abs(par[0]) + Math.abs(par[1]) + Math.abs(par[2]);
-			par.forEach((v,i) => par[i] /= s);
-		}
-	}
-}
-*/
-/*
-function approximator3() {
-	return {
-		initX:    () => [0,0,1],
-		initGrad: () => [0,0,0],
-		func: (x, par) => x*x*x*x*par[0] + x*x*x*par[1] + x*x*par[2] + x*(1-par[0]-par[1]-par[2]),
-		grad: x => {
-			return [
-				x*x*x*x - x,
-				x*x*x - x,
-				x*x - x,
-			]
-		},
-		linDiff0: (x, par, grad, t) => x*x*x*x*(par[0]+t*grad[0]) + x*x*x*(par[1]+t*grad[1]) + x*x*(par[2]+t*grad[2]) + x*(1-(par[0]+t*grad[0])-(par[1]+t*grad[1])-(par[2]+t*grad[2])),
-		linDiff1: (x, par, grad, t) => x*x*x*x*grad[0] + x*x*x*grad[1] + x*x*grad[2] - x*(grad[0]+grad[1]+grad[2]),
-		linDiff2: (x, par, grad, t) => 0,
-	}
-}
-*/
-
 
 function approximatorPoly(exponents) {
 	var length = exponents.length;
